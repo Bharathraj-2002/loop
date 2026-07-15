@@ -22,6 +22,10 @@ export async function GET(req: Request) {
   const pageSize = 10;
   const search = searchParams.get("search") || "";
   const status = searchParams.get("status") || "";
+  const channelFilter = searchParams.get("channel") || "";
+  const sentimentFilter = searchParams.get("sentiment") || "";
+  const dateFrom = searchParams.get("dateFrom") || "";
+  const dateTo = searchParams.get("dateTo") || "";
 
   const where: any = { workspaceId: currentUser.workspaceId };
   if (search) {
@@ -29,6 +33,21 @@ export async function GET(req: Request) {
   }
   if (status) {
     where.status = status;
+  }
+  if (channelFilter) {
+    where.channel = channelFilter;
+  }
+  if (sentimentFilter) {
+    where.sentiment = sentimentFilter;
+  }
+  if (dateFrom || dateTo) {
+    where.createdAt = {};
+    if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+    if (dateTo) {
+      const endOfDay = new Date(dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      where.createdAt.lte = endOfDay;
+    }
   }
 
   const [items, total] = await Promise.all([

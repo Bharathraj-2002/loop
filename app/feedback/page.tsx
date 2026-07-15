@@ -26,6 +26,10 @@ export default function FeedbackPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [channelFilter, setChannelFilter] = useState("");
+  const [sentimentFilter, setSentimentFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -36,6 +40,10 @@ export default function FeedbackPage() {
     params.set("page", String(page));
     if (search) params.set("search", search);
     if (statusFilter) params.set("status", statusFilter);
+    if (channelFilter) params.set("channel", channelFilter);
+    if (sentimentFilter) params.set("sentiment", sentimentFilter);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
 
     const res = await fetch("/api/feedback?" + params.toString());
     const data = await res.json();
@@ -49,7 +57,7 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     loadFeedback();
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, channelFilter, sentimentFilter, dateFrom, dateTo]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -123,6 +131,16 @@ export default function FeedbackPage() {
     await loadFeedback();
   }
 
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("");
+    setChannelFilter("");
+    setSentimentFilter("");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  }
+
   return (
     <div style={{ padding: 20, maxWidth: 700 }}>
       <h1>Feedback</h1>
@@ -187,7 +205,7 @@ export default function FeedbackPage() {
 
       <h2>Inbox</h2>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
         <input
           placeholder="Search feedback..."
           value={search}
@@ -195,7 +213,7 @@ export default function FeedbackPage() {
             setSearch(e.target.value);
             setPage(1);
           }}
-          style={{ flex: 1, padding: 8 }}
+          style={{ flex: 1, minWidth: 150, padding: 8 }}
         />
         <select
           value={statusFilter}
@@ -210,6 +228,70 @@ export default function FeedbackPage() {
           <option value="REVIEWED">Reviewed</option>
           <option value="ACTIONED">Actioned</option>
         </select>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+        <select
+          value={channelFilter}
+          onChange={(e) => {
+            setChannelFilter(e.target.value);
+            setPage(1);
+          }}
+          style={{ padding: 8 }}
+        >
+          <option value="">All channels</option>
+          <option value="Support ticket">Support ticket</option>
+          <option value="App store review">App store review</option>
+          <option value="NPS survey">NPS survey</option>
+          <option value="Sales call note">Sales call note</option>
+          <option value="Community post">Community post</option>
+          <option value="Zendesk">Zendesk</option>
+          <option value="App Store">App Store</option>
+          <option value="Twitter">Twitter</option>
+        </select>
+        <select
+          value={sentimentFilter}
+          onChange={(e) => {
+            setSentimentFilter(e.target.value);
+            setPage(1);
+          }}
+          style={{ padding: 8 }}
+        >
+          <option value="">All sentiments</option>
+          <option value="POS">Positive</option>
+          <option value="NEU">Neutral</option>
+          <option value="NEG">Negative</option>
+        </select>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <label style={{ fontSize: 12, color: "#888" }}>
+          From:
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
+            style={{ marginLeft: 4, padding: 6 }}
+          />
+        </label>
+        <label style={{ fontSize: 12, color: "#888" }}>
+          To:
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
+            style={{ marginLeft: 4, padding: 6 }}
+          />
+        </label>
+        <button onClick={clearFilters} style={{ padding: "6px 12px", fontSize: 12 }}>
+          Clear filters
+        </button>
       </div>
 
       <p style={{ fontSize: 13, color: "#888" }}>{total} total items</p>

@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { PrismaClient } from "@prisma/client";
+import Papa from "papaparse";
+
+const prisma = new PrismaClient();
+
+export async function POST(req: Request) {
+  const session = await getServerSession();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const currentUser = await prisma.user.findUnique({
+    where: { email: session.user.email! },
+  });
+  if (!currentUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  if (currentUser.role === "VIEWER") {
+    return NextResponse.json({ error: "Forbidden: Viewers cannot upload feedback" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const csvText = body.csv;
+
+  if (!csvText) {
+    return NextResponse.json({ error: "csv text is required" }, { status: 400 });
+  }
+
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+  const rows = parsed.data as any[];
+
+  let imported = 0;
+  let failed = 0;
+
+  for (const row of rows) {
+    if (!row.content || !row.channel) {
+      failed++;
+      continue;
+    }
+    try {
+      await prisma.feedback.create({
+        data: {
+          content: row.content,
+          channel: row.channel,
+          customerLabel: row.customer_label || null,
+          workspaceId: currentUser.workspaceId,
+        },
+      });
+      imported++;
+    } catch {
+      failed++;
+    }
+  }
+
+  return NextResponse.json({ imported, failed, total: rows.length });
+}

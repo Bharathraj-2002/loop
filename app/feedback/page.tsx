@@ -20,6 +20,8 @@ export default function FeedbackPage() {
   const [submitting, setSubmitting] = useState(false);
   const [csvResult, setCsvResult] = useState<{ imported: number; failed: number; total: number } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [simResult, setSimResult] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadFeedback() {
@@ -78,6 +80,21 @@ export default function FeedbackPage() {
     await loadFeedback();
   }
 
+  async function handleSimulate() {
+    setSimulating(true);
+    setSimResult(null);
+
+    const res = await fetch("/api/feedback/simulate", {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (data.created !== undefined) {
+      setSimResult(data.created);
+    }
+    setSimulating(false);
+    await loadFeedback();
+  }
+
   return (
     <div style={{ padding: 20, maxWidth: 700 }}>
       <h1>Feedback</h1>
@@ -107,7 +124,7 @@ export default function FeedbackPage() {
         </button>
       </form>
 
-      <div style={{ marginBottom: 24, border: "1px solid #444", borderRadius: 6, padding: 12 }}>
+      <div style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 6, padding: 12 }}>
         <p style={{ marginTop: 0, fontWeight: "bold" }}>Bulk upload (CSV)</p>
         <p style={{ fontSize: 12, color: "#888" }}>
           Columns required: content, channel (optional: customer_label)
@@ -124,6 +141,19 @@ export default function FeedbackPage() {
           <p style={{ fontSize: 13 }}>
             Imported: {csvResult.imported} / {csvResult.total} - Failed: {csvResult.failed}
           </p>
+        ) : null}
+      </div>
+
+      <div style={{ marginBottom: 24, border: "1px solid #444", borderRadius: 6, padding: 12 }}>
+        <p style={{ marginTop: 0, fontWeight: "bold" }}>Simulated channel import</p>
+        <p style={{ fontSize: 12, color: "#888" }}>
+          Pulls sample feedback from a simulated integration (Zendesk, App Store, Twitter, Community).
+        </p>
+        <button onClick={handleSimulate} disabled={simulating} style={{ padding: "8px 16px" }}>
+          {simulating ? "Importing..." : "Import from channels"}
+        </button>
+        {simResult !== null ? (
+          <p style={{ fontSize: 13, marginTop: 8 }}>Imported {simResult} items.</p>
         ) : null}
       </div>
 

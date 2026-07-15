@@ -24,16 +24,32 @@ export default function FeedbackPage() {
   const [simResult, setSimResult] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
   async function loadFeedback() {
-    const res = await fetch("/api/feedback");
+    setLoading(true);
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    if (search) params.set("search", search);
+    if (statusFilter) params.set("status", statusFilter);
+
+    const res = await fetch("/api/feedback?" + params.toString());
     const data = await res.json();
-    if (data.feedback) setFeedback(data.feedback);
+    if (data.feedback) {
+      setFeedback(data.feedback);
+      setTotalPages(data.totalPages);
+      setTotal(data.total);
+    }
     setLoading(false);
   }
 
   useEffect(() => {
     loadFeedback();
-  }, []);
+  }, [page, search, statusFilter]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +68,7 @@ export default function FeedbackPage() {
     } else {
       setContent("");
       setChannel("");
+      setPage(1);
       await loadFeedback();
     }
     setSubmitting(false);
@@ -77,6 +94,7 @@ export default function FeedbackPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    setPage(1);
     await loadFeedback();
   }
 
@@ -92,6 +110,16 @@ export default function FeedbackPage() {
       setSimResult(data.created);
     }
     setSimulating(false);
+    setPage(1);
+    await loadFeedback();
+  }
+
+  async function handleStatusChange(id: string, newStatus: string) {
+    await fetch("/api/feedback/" + id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
     await loadFeedback();
   }
 
@@ -157,7 +185,35 @@ export default function FeedbackPage() {
         ) : null}
       </div>
 
-      <h2>All Feedback</h2>
+      <h2>Inbox</h2>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <input
+          placeholder="Search feedback..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          style={{ flex: 1, padding: 8 }}
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          style={{ padding: 8 }}
+        >
+          <option value="">All statuses</option>
+          <option value="NEW">New</option>
+          <option value="REVIEWED">Reviewed</option>
+          <option value="ACTIONED">Actioned</option>
+        </select>
+      </div>
+
+      <p style={{ fontSize: 13, color: "#888" }}>{total} total items</p>
+
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -173,13 +229,44 @@ export default function FeedbackPage() {
               }}
             >
               <p style={{ margin: 0 }}>{f.content}</p>
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#888" }}>
-                {f.channel} - {f.status} {f.sentiment ? "- " + f.sentiment : ""}
-              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                <p style={{ margin: 0, fontSize: 12, color: "#888" }}>
+                  {f.channel} {f.sentiment ? "- " + f.sentiment : ""}
+                </p>
+                <select
+                  value={f.status}
+                  onChange={(e) => handleStatusChange(f.id, e.target.value)}
+                  style={{ fontSize: 12, padding: 4 }}
+                >
+                  <option value="NEW">New</option>
+                  <option value="REVIEWED">Reviewed</option>
+                  <option value="ACTIONED">Actioned</option>
+                </select>
+              </div>
             </li>
           ))}
         </ul>
       )}
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 16 }}>
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page <= 1}
+          style={{ padding: "6px 12px" }}
+        >
+          Previous
+        </button>
+        <span style={{ fontSize: 13 }}>
+          Page {page} of {totalPages}
+        </span>
+        <button
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page >= totalPages}
+          style={{ padding: "6px 12px" }}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

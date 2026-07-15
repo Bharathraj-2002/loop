@@ -4,8 +4,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET all feedback for the user's workspace
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,15 +17,39 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const feedback = await prisma.feedback.findMany({
-    where: { workspaceId: currentUser.workspaceId },
-    orderBy: { createdAt: "desc" },
-  });
+  const { searchParams } = new URL(req.url);
+  const page = parseInt(searchParams.get("page") || "1");
+  const pageSize = 10;
+  const search = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "";
 
-  return NextResponse.json({ feedback });
+  const where: any = { workspaceId: currentUser.workspaceId };
+  if (search) {
+    where.content = { contains: search, mode: "insensitive" };
+  }
+  if (status) {
+    where.status = status;
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.feedback.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.feedback.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    feedback: items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  });
 }
 
-// POST new feedback - only ADMIN and ANALYST allowed
 export async function POST(req: Request) {
   const session = await getServerSession();
   if (!session?.user) {
@@ -40,7 +63,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // RBAC check: VIEWER cannot create feedback
   if (currentUser.role === "VIEWER") {
     return NextResponse.json({ error: "Forbidden: Viewers cannot add feedback" }, { status: 403 });
   }

@@ -142,7 +142,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: 700 }}>
+    <div style={{ padding: 20, maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
       <h1>Feedback</h1>
 
       <form onSubmit={handleSubmit} style={{ marginTop: 16, marginBottom: 16 }}>

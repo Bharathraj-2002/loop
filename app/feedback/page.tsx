@@ -33,6 +33,7 @@ export default function FeedbackPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [classifyingId, setClassifyingId] = useState<string | null>(null);
 
   async function loadFeedback() {
     setLoading(true);
@@ -128,6 +129,17 @@ export default function FeedbackPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
+    await loadFeedback();
+  }
+
+  async function handleClassify(id: string) {
+    setClassifyingId(id);
+    await fetch("/api/feedback/classify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ feedbackId: id }),
+    });
+    setClassifyingId(null);
     await loadFeedback();
   }
 
@@ -311,19 +323,28 @@ export default function FeedbackPage() {
               }}
             >
               <p style={{ margin: 0 }}>{f.content}</p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, gap: 8 }}>
                 <p style={{ margin: 0, fontSize: 12, color: "#888" }}>
                   {f.channel} {f.sentiment ? "- " + f.sentiment : ""}
                 </p>
-                <select
-                  value={f.status}
-                  onChange={(e) => handleStatusChange(f.id, e.target.value)}
-                  style={{ fontSize: 12, padding: 4 }}
-                >
-                  <option value="NEW">New</option>
-                  <option value="REVIEWED">Reviewed</option>
-                  <option value="ACTIONED">Actioned</option>
-                </select>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <button
+                    onClick={() => handleClassify(f.id)}
+                    disabled={classifyingId === f.id}
+                    style={{ fontSize: 11, padding: "4px 8px" }}
+                  >
+                    {classifyingId === f.id ? "Classifying..." : "Classify"}
+                  </button>
+                  <select
+                    value={f.status}
+                    onChange={(e) => handleStatusChange(f.id, e.target.value)}
+                    style={{ fontSize: 12, padding: 4 }}
+                  >
+                    <option value="NEW">New</option>
+                    <option value="REVIEWED">Reviewed</option>
+                    <option value="ACTIONED">Actioned</option>
+                  </select>
+                </div>
               </div>
             </li>
           ))}

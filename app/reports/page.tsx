@@ -63,7 +63,15 @@ export default function ReportsPage() {
 
   return (
     <div style={{ padding: 20, maxWidth: 900, marginLeft: "auto", marginRight: "auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <h1>Voice-of-Customer Reports</h1>
         <button
           onClick={handleGenerate}
@@ -83,8 +91,15 @@ export default function ReportsPage() {
 
       {error && <p style={{ color: "#f44336", marginTop: 12 }}>{error}</p>}
 
-      <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 24,
+          marginTop: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ flex: "1 1 100%", minWidth: 0, maxWidth: 400 }}>
           <h3>Past reports</h3>
           {reports.length === 0 && <p style={{ color: "#888" }}>No reports yet.</p>}
           {reports.map((r) => (
@@ -111,7 +126,7 @@ export default function ReportsPage() {
           ))}
         </div>
 
-        <div style={{ flex: 2 }}>
+        <div style={{ flex: "1 1 100%", minWidth: 0 }}>
           {selected ? (
             <div>
               <h2 style={{ marginTop: 0 }}>{selected.title}</h2>

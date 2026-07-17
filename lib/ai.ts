@@ -58,3 +58,53 @@ Return ONLY the JSON object, nothing else.`;
     return null;
   }
 }
+export type VoCReportInput = {
+  periodStart: string;
+  periodEnd: string;
+  totalFeedback: number;
+  topThemes: { name: string; count: number }[];
+  sentimentBreakdown: { pos: number; neu: number; neg: number };
+  sentimentDeltaPct: number;
+  notableQuotes: { content: string; channel: string; sentiment: string }[];
+};
+
+export type VoCReportResult = {
+  summary: string;
+  recommendedActions: string[];
+};
+
+export async function generateVoCReport(
+  data: VoCReportInput
+): Promise<VoCReportResult | null> {
+  const prompt = `You are writing a Voice-of-Customer report for a product team.
+Use ONLY the data below. Do not invent any numbers, themes, or quotes not listed here.
+
+Period: ${data.periodStart} to ${data.periodEnd}
+Total feedback items: ${data.totalFeedback}
+Top themes: ${data.topThemes.map(t => `${t.name} (${t.count})`).join(", ")}
+Sentiment breakdown: ${data.sentimentBreakdown.pos} positive, ${data.sentimentBreakdown.neu} neutral, ${data.sentimentBreakdown.neg} negative
+Sentiment change vs previous period: ${data.sentimentDeltaPct}%
+Notable quotes: ${data.notableQuotes.map(q => `"${q.content}" (${q.channel}, ${q.sentiment})`).join(" | ")}
+
+Return ONLY a JSON object (no markdown fences, no extra text) with this exact structure:
+{
+  "summary": "a 3-5 sentence executive summary of what customers are saying, referencing the actual themes and sentiment numbers above",
+  "recommendedActions": ["3-5 short, specific, actionable recommendations based only on the data above"]
+}
+Return ONLY the JSON object, nothing else.`;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const result = await model.generateContent(prompt);
+    let text = result.response.text().trim();
+    text = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+    const parsed = JSON.parse(text);
+    if (!parsed.summary || !Array.isArray(parsed.recommendedActions)) {
+      return null;
+    }
+    return parsed as VoCReportResult;
+  } catch (err) {
+    console.error("VoC report generation error:", err);
+    return null;
+  }
+}

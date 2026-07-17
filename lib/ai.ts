@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+﻿import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -58,6 +58,7 @@ Return ONLY the JSON object, nothing else.`;
     return null;
   }
 }
+
 export type VoCReportInput = {
   periodStart: string;
   periodEnd: string;
@@ -72,6 +73,10 @@ export type VoCReportResult = {
   summary: string;
   recommendedActions: string[];
 };
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function generateVoCReport(
   data: VoCReportInput
@@ -93,18 +98,28 @@ Return ONLY a JSON object (no markdown fences, no extra text) with this exact st
 }
 Return ONLY the JSON object, nothing else.`;
 
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
-    const result = await model.generateContent(prompt);
-    let text = result.response.text().trim();
-    text = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-    const parsed = JSON.parse(text);
-    if (!parsed.summary || !Array.isArray(parsed.recommendedActions)) {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const result = await model.generateContent(prompt);
+      let text = result.response.text().trim();
+      text = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+      const parsed = JSON.parse(text);
+      if (!parsed.summary || !Array.isArray(parsed.recommendedActions)) {
+        return null;
+      }
+      return parsed as VoCReportResult;
+    } catch (err: any) {
+      const isOverloaded =
+        err?.status === 503 || (err?.message && err.message.includes("503"));
+      console.error(`VoC report generation error (attempt ${attempt}):`, err);
+      if (isOverloaded && attempt < maxAttempts) {
+        await sleep(attempt * 2000);
+        continue;
+      }
       return null;
     }
-    return parsed as VoCReportResult;
-  } catch (err) {
-    console.error("VoC report generation error:", err);
-    return null;
   }
+  return null;
 }

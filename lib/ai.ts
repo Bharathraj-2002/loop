@@ -78,8 +78,6 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const REPORT_MODELS = ["gemini-3.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
-
 export async function generateVoCReport(
   data: VoCReportInput
 ): Promise<VoCReportResult | null> {
@@ -100,32 +98,27 @@ Return ONLY a JSON object (no markdown fences, no extra text) with this exact st
 }
 Return ONLY the JSON object, nothing else.`;
 
-  for (const modelName of REPORT_MODELS) {
-    const maxAttempts = 2;
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
-        let text = result.response.text().trim();
-        text = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-        const parsed = JSON.parse(text);
-        if (!parsed.summary || !Array.isArray(parsed.recommendedActions)) {
-          continue;
-        }
-        return parsed as VoCReportResult;
-      } catch (err: any) {
-        const isOverloaded =
-          err?.status === 503 || (err?.message && err.message.includes("503"));
-        console.error(
-          `VoC report generation error (model ${modelName}, attempt ${attempt}):`,
-          err
-        );
-        if (isOverloaded && attempt < maxAttempts) {
-          await sleep(attempt * 1500);
-          continue;
-        }
-        break;
+  const maxAttempts = 5;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const result = await model.generateContent(prompt);
+      let text = result.response.text().trim();
+      text = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+      const parsed = JSON.parse(text);
+      if (!parsed.summary || !Array.isArray(parsed.recommendedActions)) {
+        return null;
       }
+      return parsed as VoCReportResult;
+    } catch (err: any) {
+      const isOverloaded =
+        err?.status === 503 || (err?.message && err.message.includes("503"));
+      console.error(`VoC report generation error (attempt ${attempt}):`, err);
+      if (isOverloaded && attempt < maxAttempts) {
+        await sleep(4000);
+        continue;
+      }
+      return null;
     }
   }
   return null;

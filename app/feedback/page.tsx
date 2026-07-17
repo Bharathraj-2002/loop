@@ -23,6 +23,7 @@ export default function FeedbackPage() {
   const [simulating, setSimulating] = useState(false);
   const [simResult, setSimResult] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -34,6 +35,16 @@ export default function FeedbackPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.role) setRole(data.role);
+      });
+  }, []);
+
+  const isViewer = role === "VIEWER";
 
   async function loadFeedback() {
     setLoading(true);
@@ -157,63 +168,76 @@ export default function FeedbackPage() {
     <div style={{ padding: 20, maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
       <h1>Feedback</h1>
 
-      <form onSubmit={handleSubmit} style={{ marginTop: 16, marginBottom: 16 }}>
-        <div style={{ marginBottom: 8 }}>
-          <textarea
-            placeholder="Feedback content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            style={{ width: "100%", padding: 8, minHeight: 60 }}
-          />
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <input
-            placeholder="Channel (e.g. Support ticket, NPS survey)"
-            value={channel}
-            onChange={(e) => setChannel(e.target.value)}
-            required
-            style={{ width: "100%", padding: 8 }}
-          />
-        </div>
-        {error ? <p style={{ color: "red" }}>{error}</p> : null}
-        <button type="submit" disabled={submitting} style={{ padding: "8px 16px" }}>
-          {submitting ? "Adding..." : "Add Feedback"}
-        </button>
-      </form>
-
-      <div style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 6, padding: 12 }}>
-        <p style={{ marginTop: 0, fontWeight: "bold" }}>Bulk upload (CSV)</p>
-        <p style={{ fontSize: 12, color: "#888" }}>
-          Columns required: content, channel (optional: customer_label)
+      {isViewer ? (
+        <p style={{ fontSize: 13, color: "#888", marginTop: 8 }}>
+          You are signed in as a Viewer. You can browse and search feedback, but adding,
+          uploading, importing, and status changes are read-only for your role.
         </p>
-        <input
-          type="file"
-          accept=".csv"
-          ref={fileInputRef}
-          onChange={handleCsvUpload}
-          disabled={uploading}
-        />
-        {uploading ? <p>Uploading...</p> : null}
-        {csvResult ? (
-          <p style={{ fontSize: 13 }}>
-            Imported: {csvResult.imported} / {csvResult.total} - Failed: {csvResult.failed}
+      ) : null}
+
+      {!isViewer && (
+        <form onSubmit={handleSubmit} style={{ marginTop: 16, marginBottom: 16 }}>
+          <div style={{ marginBottom: 8 }}>
+            <textarea
+              placeholder="Feedback content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+              style={{ width: "100%", padding: 8, minHeight: 60 }}
+            />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <input
+              placeholder="Channel (e.g. Support ticket, NPS survey)"
+              value={channel}
+              onChange={(e) => setChannel(e.target.value)}
+              required
+              style={{ width: "100%", padding: 8 }}
+            />
+          </div>
+          {error ? <p style={{ color: "red" }}>{error}</p> : null}
+          <button type="submit" disabled={submitting} style={{ padding: "8px 16px" }}>
+            {submitting ? "Adding..." : "Add Feedback"}
+          </button>
+        </form>
+      )}
+
+      {!isViewer && (
+        <div style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 6, padding: 12 }}>
+          <p style={{ marginTop: 0, fontWeight: "bold" }}>Bulk upload (CSV)</p>
+          <p style={{ fontSize: 12, color: "#888" }}>
+            Columns required: content, channel (optional: customer_label)
           </p>
-        ) : null}
-      </div>
+          <input
+            type="file"
+            accept=".csv"
+            ref={fileInputRef}
+            onChange={handleCsvUpload}
+            disabled={uploading}
+          />
+          {uploading ? <p>Uploading...</p> : null}
+          {csvResult ? (
+            <p style={{ fontSize: 13 }}>
+              Imported: {csvResult.imported} / {csvResult.total} - Failed: {csvResult.failed}
+            </p>
+          ) : null}
+        </div>
+      )}
 
-      <div style={{ marginBottom: 24, border: "1px solid #444", borderRadius: 6, padding: 12 }}>
-        <p style={{ marginTop: 0, fontWeight: "bold" }}>Simulated channel import</p>
-        <p style={{ fontSize: 12, color: "#888" }}>
-          Pulls sample feedback from a simulated integration (Zendesk, App Store, Twitter, Community).
-        </p>
-        <button onClick={handleSimulate} disabled={simulating} style={{ padding: "8px 16px" }}>
-          {simulating ? "Importing..." : "Import from channels"}
-        </button>
-        {simResult !== null ? (
-          <p style={{ fontSize: 13, marginTop: 8 }}>Imported {simResult} items.</p>
-        ) : null}
-      </div>
+      {!isViewer && (
+        <div style={{ marginBottom: 24, border: "1px solid #444", borderRadius: 6, padding: 12 }}>
+          <p style={{ marginTop: 0, fontWeight: "bold" }}>Simulated channel import</p>
+          <p style={{ fontSize: 12, color: "#888" }}>
+            Pulls sample feedback from a simulated integration (Zendesk, App Store, Twitter, Community).
+          </p>
+          <button onClick={handleSimulate} disabled={simulating} style={{ padding: "8px 16px" }}>
+            {simulating ? "Importing..." : "Import from channels"}
+          </button>
+          {simResult !== null ? (
+            <p style={{ fontSize: 13, marginTop: 8 }}>Imported {simResult} items.</p>
+          ) : null}
+        </div>
+      )}
 
       <h2>Inbox</h2>
 
@@ -310,6 +334,8 @@ export default function FeedbackPage() {
 
       {loading ? (
         <p>Loading...</p>
+      ) : feedback.length === 0 ? (
+        <p style={{ color: "#888" }}>No feedback matches your filters.</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0 }}>
           {feedback.map((f) => (
@@ -327,24 +353,29 @@ export default function FeedbackPage() {
                 <p style={{ margin: 0, fontSize: 12, color: "#888" }}>
                   {f.channel} {f.sentiment ? "- " + f.sentiment : ""}
                 </p>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <button
-                    onClick={() => handleClassify(f.id)}
-                    disabled={classifyingId === f.id}
-                    style={{ fontSize: 11, padding: "4px 8px" }}
-                  >
-                    {classifyingId === f.id ? "Classifying..." : "Classify"}
-                  </button>
-                  <select
-                    value={f.status}
-                    onChange={(e) => handleStatusChange(f.id, e.target.value)}
-                    style={{ fontSize: 12, padding: 4 }}
-                  >
-                    <option value="NEW">New</option>
-                    <option value="REVIEWED">Reviewed</option>
-                    <option value="ACTIONED">Actioned</option>
-                  </select>
-                </div>
+                {!isViewer && (
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <button
+                      onClick={() => handleClassify(f.id)}
+                      disabled={classifyingId === f.id}
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                    >
+                      {classifyingId === f.id ? "Classifying..." : "Classify"}
+                    </button>
+                    <select
+                      value={f.status}
+                      onChange={(e) => handleStatusChange(f.id, e.target.value)}
+                      style={{ fontSize: 12, padding: 4 }}
+                    >
+                      <option value="NEW">New</option>
+                      <option value="REVIEWED">Reviewed</option>
+                      <option value="ACTIONED">Actioned</option>
+                    </select>
+                  </div>
+                )}
+                {isViewer && (
+                  <span style={{ fontSize: 12, color: "#666" }}>{f.status}</span>
+                )}
               </div>
             </li>
           ))}

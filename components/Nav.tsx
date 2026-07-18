@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -14,6 +15,20 @@ const links = [
 export default function Nav() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [theme, setTheme] = useState("dark");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("loop-theme") || "dark";
+    setTheme(saved);
+    document.documentElement.setAttribute("data-theme", saved);
+  }, []);
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("loop-theme", next);
+  }
 
   if (!session) return null;
   if (pathname === "/login" || pathname === "/") return null;
@@ -22,46 +37,72 @@ export default function Nav() {
     <nav
       style={{
         display: "flex",
-        gap: 4,
+        gap: 8,
         padding: "12px 20px",
-        borderBottom: "1px solid #333",
+        borderBottom: "1px solid var(--border)",
+        background: "var(--nav-bg)",
         alignItems: "center",
         flexWrap: "wrap",
       }}
     >
-      <span style={{ fontWeight: "bold", marginRight: 16 }}>LOOP</span>
-      {links.map((link) => (
+      <span style={{ fontWeight: "bold", marginRight: 12, color: "var(--foreground)" }}>
+        LOOP
+      </span>
+      {links.map((link) => {
+        const isActive = pathname === link.href;
+        return (
+          <button
+            key={link.href}
+            onClick={() => { window.location.href = link.href; }}
+            style={{
+              padding: "8px 14px",
+              background: isActive ? "var(--btn-active)" : "var(--btn-bg)",
+              color: isActive ? "#ffffff" : "var(--foreground)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            {link.label}
+          </button>
+        );
+      })}
+
+      <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
         <button
-          key={link.href}
-          onClick={() => { window.location.href = link.href; }}
+          onClick={toggleTheme}
+          title="Toggle theme"
           style={{
-            padding: "6px 12px",
-            background: pathname === link.href ? "#6c5ce7" : "transparent",
-            color: "#fff",
-            border: "1px solid #444",
+            padding: "8px 12px",
+            background: "var(--btn-bg)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            cursor: "pointer",
+            fontSize: 16,
+          }}
+        >
+          {theme === "dark" ? "Light" : "Dark"}
+        </button>
+        <button
+          onClick={() => { window.location.href = "/api/auth/signout"; }}
+          style={{
+            padding: "8px 14px",
+            background: "#c0392b",
+            color: "#ffffff",
+            border: "1px solid var(--border)",
             borderRadius: 6,
             cursor: "pointer",
             fontSize: 13,
+            fontWeight: 500,
           }}
         >
-          {link.label}
+          Sign Out
         </button>
-      ))}
-      <button
-        onClick={() => { window.location.href = "/api/auth/signout"; }}
-        style={{
-          marginLeft: "auto",
-          padding: "6px 12px",
-          background: "transparent",
-          color: "#f44336",
-          border: "1px solid #444",
-          borderRadius: 6,
-          cursor: "pointer",
-          fontSize: 13,
-        }}
-      >
-        Sign Out
-      </button>
+      </div>
     </nav>
   );
 }
+

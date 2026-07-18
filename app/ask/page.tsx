@@ -19,19 +19,16 @@ export default function AskLoopPage() {
   async function handleAsk(e: React.FormEvent) {
     e.preventDefault();
     if (!question.trim()) return;
-
     setLoading(true);
     setError("");
     setAnswer("");
     setSources([]);
-
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question }),
     });
     const data = await res.json();
-
     if (data.error) {
       setError(data.error);
     } else {
@@ -48,59 +45,90 @@ export default function AskLoopPage() {
   ];
 
   return (
-    <div style={{ padding: 20, maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
+    <div style={{ padding: 20, maxWidth: 700, marginLeft: "auto", marginRight: "auto", color: "var(--foreground)" }}>
       <h1>Ask LOOP</h1>
-      <p style={{ fontSize: 13, color: "#888" }}>
+      <p style={{ fontSize: 13, color: "var(--foreground)", opacity: 0.7 }}>
         Ask a question in plain English. Answers are grounded in your actual feedback data.
       </p>
-
       <form onSubmit={handleAsk} style={{ marginTop: 16 }}>
         <textarea
           placeholder="e.g. What are users saying about onboarding?"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          style={{ width: "100%", padding: 10, minHeight: 70 }}
+          style={{
+            width: "100%",
+            padding: 10,
+            minHeight: 70,
+            background: "var(--card-bg)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+          }}
         />
-        <button type="submit" disabled={loading} style={{ padding: "8px 16px", marginTop: 8 }}>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            padding: "8px 16px",
+            marginTop: 8,
+            background: "var(--btn-active)",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+          }}
+        >
           {loading ? "Thinking..." : "Ask"}
         </button>
       </form>
-
       <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
         {examples.map((ex) => (
           <button
             key={ex}
             onClick={() => setQuestion(ex)}
-            style={{ fontSize: 12, padding: "6px 10px", background: "#1a1a1a", border: "1px solid #444", borderRadius: 6 }}
+            style={{
+              fontSize: 12,
+              padding: "6px 10px",
+              background: "var(--btn-bg)",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              cursor: "pointer",
+            }}
           >
             {ex}
           </button>
         ))}
       </div>
-
-      {error ? <p style={{ color: "red", marginTop: 16 }}>{error}</p> : null}
-
+      {error ? <p style={{ color: "#f44336", marginTop: 16 }}>{error}</p> : null}
       {answer ? (
-        <div style={{ marginTop: 24, border: "1px solid #444", borderRadius: 8, padding: 16 }}>
+        <div
+          style={{
+            marginTop: 24,
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            padding: 16,
+            background: "var(--card-bg)",
+          }}
+        >
           <p style={{ margin: 0, fontWeight: "bold" }}>Answer</p>
           <p style={{ marginTop: 8, lineHeight: 1.5 }}>{answer}</p>
-
           {sources.length > 0 ? (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 13, fontWeight: "bold", color: "#888" }}>Sources</p>
+              <p style={{ fontSize: 13, fontWeight: "bold", opacity: 0.7 }}>Sources</p>
               <ul style={{ listStyle: "none", padding: 0 }}>
                 {sources.map((s) => (
                   <li
                     key={s.id}
                     style={{
                       fontSize: 13,
-                      color: "#aaa",
-                      borderLeft: "2px solid #444",
+                      opacity: 0.85,
+                      borderLeft: "2px solid var(--border)",
                       paddingLeft: 10,
                       marginBottom: 8,
                     }}
                   >
-                    [{s.index}] {s.content} <span style={{ color: "#666" }}>({s.channel})</span>
+                    [{s.index}] {s.content} <span style={{ opacity: 0.6 }}>({s.channel})</span>
                   </li>
                 ))}
               </ul>

@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# LOOP - AI Customer-Feedback Intelligence Platform
 
-## Getting Started
+LOOP is a multi-tenant web application that ingests customer feedback from multiple channels, uses AI to classify and cluster it into themes, detects trends, answers plain-English questions grounded in real feedback data, and generates Voice-of-Customer reports for leadership.
 
-First, run the development server:
+Built as a Zidio Development internship project (Web Development Track).
+
+## Live Demo
+
+- App: https://loop-eight-mauve.vercel.app
+- Repo: https://github.com/Bharathraj-2002/loop
+
+### Demo credentials (same workspace, three roles)
+
+| Role    | Email               | Password  |
+|---------|---------------------|-----------|
+| Admin   | admin@acme.test     | Demo@1234 |
+| Analyst | analyst@acme.test   | Demo@1234 |
+| Viewer  | viewer@acme.test    | Demo@1234 |
+
+## Tech Stack
+
+- Framework: Next.js 14 (App Router) + TypeScript
+- Styling: Inline styles (Tailwind-ready, kept minimal for speed of build)
+- Database: PostgreSQL (Neon)
+- ORM: Prisma
+- Auth: NextAuth (Auth.js), credentials-based
+- AI: Google Gemini API with model fallback, used in place of Claude due to API credit constraints during development
+- Charts: Recharts
+- Validation: Manual + Zod where applicable
+- Deployment: Vercel + Neon Postgres
+
+## Architecture Summary
+
+LOOP follows a three-tier architecture.
+
+1. Client (Next.js App Router) - Dashboard, Feedback Inbox, Themes, Ask LOOP, Reports.
+2. API layer (Route Handlers under /app/api) - authenticates every request, checks user role, scopes every query to the caller workspaceId.
+3. Data layer (PostgreSQL via Prisma) - all tenant tables carry a workspaceId foreign key.
+
+AI features call Google Gemini API server-side only, the API key never reaches the browser.
+
+### Security rule
+
+Every database query touching feedback, themes, reports, or users is filtered by the workspaceId. A user from one workspace can never read another workspace data.
+
+## Core Features
+
+- Multi-tenant workspaces with three roles: Admin, Analyst, Viewer, RBAC enforced server-side.
+- Feedback ingestion: single-entry form, CSV bulk upload, simulated channel import.
+- Feedback inbox with search, filters, pagination, and status workflow.
+- Analytics dashboard with volume, sentiment, and channel charts.
+
+## AI Features
+
+- Auto-classification: every feedback item is tagged with sentiment, sentiment score, theme, and feature area via Gemini.
+- Theme clustering and trends: feedback is grouped into named themes with spike detection.
+- Ask LOOP: retrieval-grounded Q&A, answers only from real feedback data.
+- Voice-of-Customer report: stats pre-computed in code, Gemini writes the narrative only. Reports are saved, viewable, and exportable as PDF.
+
+## Local Setup
+
+### Prerequisites
+
+- Node.js 18 LTS or newer
+- A PostgreSQL database, Neon free tier recommended
+- A Google Gemini API key
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/Bharathraj-2002/loop.git
+cd loop
+npm install
+```
+
+### 2. Environment variables
+
+Create a .env file in the project root:
+
+```
+DATABASE_URL="your-postgres-connection-string"
+NEXTAUTH_SECRET="a-random-secret-string"
+NEXTAUTH_URL="http://localhost:3000"
+GEMINI_API_KEY="your-gemini-api-key"
+```
+
+### 3. Database setup
+
+```bash
+npx prisma migrate dev
+npm run seed
+```
+
+This creates the demo workspace, three role-based users, and 130+ seeded feedback items.
+
+### 4. Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit http://localhost:3000 and log in with any of the demo credentials above.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 5. Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Push to GitHub, connect the repo to Vercel, and add the same environment variables in Vercel Project Settings, then redeploy.
 
-## Learn More
+## Known Limitations
 
-To learn more about Next.js, take a look at the following resources:
+- Gemini free-tier API key has a daily request quota. Heavy testing of AI features in a short window may hit that limit. The app includes retry logic and a model fallback to handle transient errors.
+- AI provider is Google Gemini, not Claude, due to Anthropic API credit constraints during the internship period. The RAG and structured-output patterns match what the brief specifies.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Built over a 4-week sprint per the Zidio Development brief. Core app, AI features, and Voice-of-Customer reporting with export are complete and deployed.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
